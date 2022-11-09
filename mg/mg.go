@@ -2,6 +2,7 @@ package mg
 
 import (
 	"net/http"
+	"strings"
 )
 
 // HandlerFunc 自定义结构体, 供外界使用
@@ -17,8 +18,15 @@ type Engine struct {
 
 // ServerHTTP Engine实现http库中的ServeHTTP(ResponseWriter, *Request)方法, 这个方法会接管所有请求
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(r.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	// 构建上下文Context
 	c := newContext(w, r)
+	c.handlers = middlewares
 	// 解析路由
 	engine.router.handle(c)
 }
@@ -31,6 +39,12 @@ func New() *Engine {
 	return engine
 }
 
+func Default() *Engine {
+	engine := New()
+	engine.Use(Logger(), Recovery())
+	return engine
+}
+
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	engine := group.engine
 	newGroup := &RouterGroup{
@@ -40,6 +54,10 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	}
 	engine.groups = append(engine.groups, newGroup)
 	return newGroup
+}
+
+func (group *RouterGroup) Use(handlers ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, handlers...)
 }
 
 // addRouter 添加路由 method 请求类型, pattern 路径, handler 要执行的函数

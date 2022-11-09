@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"mg"
 	"net/http"
+	"time"
 )
 
 func main() {
 
 	// 创建myGin
-	r := mg.New()
+	r := mg.Default()
 	r.GET("/hello", func(c *mg.Context) {
 		name := c.Query("name")
 		c.String(http.StatusOK, "hello %v", name)
@@ -41,12 +43,36 @@ func main() {
 	})
 
 	bookGroup := r.Group("/book")
+	bookGroup.Use(onlyBook())
 	{
 		bookGroup.GET("/info", func(c *mg.Context) {
+			log.Printf("/book/info---invoke")
 			c.String(http.StatusOK, fmt.Sprintf("path:%v", c.Path))
 		})
 	}
 
+	r.GET("/panic", func(c *mg.Context) {
+		a := []int{1, 2}
+		b := a[4:]
+		fmt.Println(b)
+	})
+
 	// 启动
 	r.Run(":8081")
+}
+
+func calCost() mg.HandlerFunc {
+	return func(c *mg.Context) {
+		start := time.Now()
+		c.Next()
+		log.Printf("%v cost %v ns", c.Path, time.Since(start))
+	}
+}
+
+func onlyBook() mg.HandlerFunc {
+	return func(c *mg.Context) {
+		log.Printf("onlyBookMiddleware---start")
+		c.Next()
+		log.Printf("onlyBookMiddleware---end")
+	}
 }

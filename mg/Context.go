@@ -17,6 +17,10 @@ type Context struct {
 	Method     string
 	StatusCode int
 	Params     map[string]string
+	// 中间件
+	handlers []HandlerFunc
+	// 记录当前执行到Context中的哪个中间件
+	index int
 }
 
 // newContext 提供函数初始化一个 Context
@@ -26,6 +30,16 @@ func newContext(w http.ResponseWriter, r *http.Request) *Context {
 		Request: r,
 		Path:    r.URL.Path,
 		Method:  r.Method,
+		index:   -1,
+	}
+}
+
+// Next 执行Context中的下一个中间件
+func (c *Context) Next() {
+	c.index++
+	s := len(c.handlers)
+	for ; c.index < s; c.index++ {
+		c.handlers[c.index](c)
 	}
 }
 
@@ -81,4 +95,8 @@ func (c *Context) HTML(code int, html string) {
 
 func (c *Context) Param(key string) string {
 	return c.Params[key]
+}
+
+func (c *Context) Fail(code int, errorMessage string) {
+	c.String(code, "%v", errorMessage)
 }
