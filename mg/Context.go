@@ -16,6 +16,7 @@ type Context struct {
 	Path       string
 	Method     string
 	StatusCode int
+	Params     map[string]string
 }
 
 // newContext 提供函数初始化一个 Context
@@ -76,4 +77,8 @@ func (c *Context) HTML(code int, html string) {
 	c.SetHeader("Content-Type", "application/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+func (c *Context) Param(key string) string {
+	return c.Params[key]
 }
