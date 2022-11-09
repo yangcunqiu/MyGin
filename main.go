@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"mg"
 	"net/http"
 )
@@ -38,6 +39,13 @@ func main() {
 			"path":     c.Path,
 		})
 	})
+
+	bookGroup := r.Group("/book")
+	{
+		bookGroup.GET("/info", func(c *mg.Context) {
+			c.String(http.StatusOK, fmt.Sprintf("path:%v", c.Path))
+		})
+	}
 
 	// 启动
 	r.Run(":8081")
